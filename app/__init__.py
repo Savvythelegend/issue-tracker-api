@@ -1,11 +1,12 @@
 from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
 from dotenv import load_dotenv
+from flasgger import Swagger
 import os
 
 db = SQLAlchemy()
 load_dotenv()
-
+swagger = Swagger()
 def create_app():
     # This code initializes a Flask application, sets up SQLAlchemy for database interactions,
     # and loads environment variables from a .env file. The application is configured to use a database URL
@@ -17,6 +18,7 @@ def create_app():
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
     
     db.init_app(app)
+    swagger.init_app(app)
 
     from .routes import bp
     app.register_blueprint(bp)
