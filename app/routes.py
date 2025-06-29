@@ -1,8 +1,12 @@
 from flask import Blueprint, request, jsonify
-from .models import Issue
+from .models import Issue, User
 from . import db
 from .schemas import IssueCreate, IssueOut
 from pydantic import ValidationError
+from flask_jwt_extended import (
+    create_access_token, jwt_required, get_jwt_identity, create_refresh_token, get_jwt
+)
+from .blacklist import blacklisted_tokens
 
 bp = Blueprint('api', __name__)
 
@@ -12,27 +16,139 @@ def index():
     return '✅ Issue Tracker API is running'
 
 
-@bp.route('/issues', methods=['GET'])
-def get_issues():
+@bp.route('/register', methods=['POST'])
+def register():
     """
-    Get all issues
+    Register a new user
     ---
+    parameters:
+      - in: body
+        name: body
+        required: true
+        schema:
+          properties:
+            email:
+              type: string
+            password:
+              type: string
+    responses:
+      201:
+        description: User registered
+      400:
+        description: Invalid input or user exists
+    """
+    data = request.get_json()
+    if not data:
+        return jsonify({"error": "Missing JSON in request"}), 400
+
+    email = data.get('email')
+    password = data.get('password')
+
+    if not email or not password:
+        return jsonify({"error": "Email and password are required"}), 400
+
+    if User.query.filter_by(email=email).first():
+        return jsonify({"error": "User already exists"}), 400
+
+    new_user = User(email=email)
+    new_user.set_password(password)
+    db.session.add(new_user)
+    db.session.commit()
+
+    return jsonify({"message": "User registered successfully"}), 201
+
+
+@bp.route('/login', methods=['POST'])
+def login():
+    """
+    Login and receive a JWT token
+    ---
+    parameters:
+      - in: body
+        name: body
+        required: true
+        schema:
+          properties:
+            email:
+              type: string
+            password:
+              type: string
     responses:
       200:
-        description: A list of all issues
+        description: Returns a JWT access token
+      400:
+        description: Missing or invalid input
+      401:
+        description: Invalid credentials
     """
-    issues = Issue.query.all()
-    return jsonify([issue.to_dict() for issue in issues])
+    data = request.get_json()
+    if not data:
+        return jsonify({"error": "Missing JSON in request"}), 400
 
+    email = data.get('email')
+    password = data.get('password')
+
+    if not email or not password:
+        return jsonify({"error": "Email and password are required"}), 400
+
+    user = User.query.filter_by(email=email).first()
+    if not user or not user.check_password(password):
+        return jsonify({"error": "Invalid credentials"}), 401
+
+    access_token = create_access_token(identity=user.id)
+    refresh_token = create_refresh_token(identity=user.id)
+    return jsonify(access_token=access_token, refresh_token=refresh_token), 200
+
+
+
+@bp.route('/refresh', methods=['POST'])
+@jwt_required(refresh=True)
+def refresh():
+    """
+    Refresh access token
+    ---
+    security:
+      - Bearer: []
+    responses:
+      200:
+        description: New access token issued
+      401:
+        description: Invalid or expired refresh token
+    """
+    user_id = get_jwt_identity()
+    access_token = create_access_token(identity=user_id)
+    return jsonify(access_token=access_token), 200
+
+
+@bp.route('/logout', methods=['POST'])
+@jwt_required()
+def logout():
+    """
+    Logout user and blacklist the token
+    ---
+    security:
+      - Bearer: []
+    responses:
+      200:
+        description: Token successfully revoked
+      401:
+        description: Invalid or missing token
+    """
+    jti = get_jwt()["jti"]
+    blacklisted_tokens.add(jti)
+    return jsonify({"message": "Logged out successfully"}), 200
 
 @bp.route('/issues', methods=['POST'])
+@jwt_required()
 def create_issue():
     """
     Create a new issue
     ---
+    security:
+      - Bearer: []
     parameters:
-      - name: body
-        in: body
+      - in: body
+        name: body
         required: true
         schema:
           properties:
@@ -57,33 +173,50 @@ def create_issue():
 
 
 @bp.route('/issues/<int:issue_id>', methods=['GET'])
+@jwt_required()
 def get_issue(issue_id):
-    issue = Issue.query.get_or_404(issue_id)
-    return jsonify(issue.to_dict())
-
-
-@bp.route('/issues/<int:issue_id>', methods=['PUT'])
-def update_issue(issue_id):
     """
-    Update an issue by ID
+    Get a single issue by ID
     ---
+    security:
+      - Bearer: []
     parameters:
       - name: issue_id
         in: path
         type: integer
         required: true
-        description: ID of the issue to update
-      - name: body
-        in: body
+    responses:
+      200:
+        description: Returns issue
+      404:
+        description: Issue not found
+    """
+    issue = Issue.query.get_or_404(issue_id)
+    return jsonify(issue.to_dict())
+
+
+@bp.route('/issues/<int:issue_id>', methods=['PUT'])
+@jwt_required()
+def update_issue(issue_id):
+    """
+    Fully update an issue by ID
+    ---
+    security:
+      - Bearer: []
+    parameters:
+      - name: issue_id
+        in: path
+        type: integer
+        required: true
+      - in: body
+        name: body
         required: true
         schema:
           properties:
             title:
               type: string
-              description: New title (optional)
             description:
               type: string
-              description: New description (optional)
     responses:
       200:
         description: The updated issue
@@ -105,24 +238,26 @@ def update_issue(issue_id):
 
 
 @bp.route('/issues/<int:issue_id>', methods=['PATCH'])
+@jwt_required()
 def patch_issue(issue_id):
     """
     Partially update an issue by ID
     ---
+    security:
+      - Bearer: []
     parameters:
       - name: issue_id
         in: path
         type: integer
         required: true
-        description: ID of the issue to update
-      - name: body
-        in: body
+      - in: body
+        name: body
         required: true
         schema:
           properties:
             status:
               type: string
-              description: New status (optional)
+              description: New status
     responses:
       200:
         description: The updated issue
@@ -140,21 +275,22 @@ def patch_issue(issue_id):
         issue.status = status
 
     db.session.commit()
-
     return jsonify(issue.to_dict()), 200
 
 
 @bp.route('/issues/<int:issue_id>', methods=['DELETE'])
+@jwt_required()
 def delete_issue(issue_id):
     """
     Delete an issue by ID
     ---
+    security:
+      - Bearer: []
     parameters:
       - name: issue_id
         in: path
         type: integer
         required: true
-        description: ID of the issue to delete
     responses:
       204:
         description: Issue deleted
