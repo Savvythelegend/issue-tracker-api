@@ -9,7 +9,7 @@ class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     email = db.Column(db.String(120), unique=True, nullable=False)
     password_hash = db.Column(db.String(128), nullable=False)
-
+    role = db.Column(db.String(20), default='user') # e.g., 'admin', 'user'
     issues = db.relationship('Issue', backref='user', lazy=True)
 
     def set_password(self, password):
@@ -27,7 +27,6 @@ class Issue(db.Model):
     description = db.Column(db.String(500), default='') 
     status = db.Column(db.String(20), default='open')
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
-
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
 
     def to_dict(self):
