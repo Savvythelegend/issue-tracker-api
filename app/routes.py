@@ -1,20 +1,40 @@
 from flask import Blueprint, request, jsonify
-from .models import Issue, User
-from . import db
+from .models import Issue, User, BlackListTokens
 from .schemas import IssueCreate, IssueOut
 from pydantic import ValidationError
 from flask_jwt_extended import (
     create_access_token, jwt_required, get_jwt_identity, create_refresh_token, get_jwt
 )
-from .blacklist import blacklisted_tokens
 
 bp = Blueprint('api', __name__)
 
-
 @bp.route('/')
 def index():
-    return '✅ Issue Tracker API is running'
+    return """
+    <html>
+        <head>
+            <style>
+                .loader {
+                  border: 8px solid #f3f3f3;
+                  border-top: 8px solid #3498db;
+                  border-radius: 50%;
+                  width: 60px;
+                  height: 60px;
+                  animation: spin 2s linear infinite;
+                }
 
+                @keyframes spin {
+                  0% { transform: rotate(0deg); }
+                  100% { transform: rotate(360deg); }
+                }
+            </style>
+        </head>
+        <body>
+            <h2>Issue Tracker API</h2>
+            <div class="loader"></div>
+        </body>
+    </html>
+    """
 
 @bp.route('/register', methods=['POST'])
 def register():
@@ -135,8 +155,17 @@ def logout():
         description: Invalid or missing token
     """
     jti = get_jwt()["jti"]
-    blacklisted_tokens.add(jti)
+    db.session.add(BlackListTokens(jti=jti))
+    db.session.commit()
     return jsonify({"message": "Logged out successfully"}), 200
+
+@bp.route('/logout-refresh', methods=['POST'])
+@jwt_required
+def logout_ref():
+    jti = get_jwt["jti"]
+    db.session.add(BlackListTokens(jti=jti))
+    db.session.commit()
+    return jsonify('{msg: "Refesh token revoked"}'), 200
 
 @bp.route('/issues', methods=['POST'])
 @jwt_required()

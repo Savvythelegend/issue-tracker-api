@@ -1,5 +1,4 @@
-from app import create_app
-from app import db
+from app import create_app,db
 app = create_app()
 
 # This script initializes the database and creates the necessary tables.    

@@ -1,16 +1,13 @@
 from flask import Flask
-from flask_sqlalchemy import SQLAlchemy
 from dotenv import load_dotenv
+from flask_sqlalchemy import SQLAlchemy
 from flasgger import Swagger
 from flask_jwt_extended import JWTManager
+from .routes import bp
+from .models import BlackListTokens
 from datetime import timedelta
+from .extensions import db, jwt, swagger
 import os
-
-from .blacklist import blacklisted_tokens  # Import this
-
-db = SQLAlchemy()
-jwt = JWTManager()
-swagger = Swagger()
 
 load_dotenv()
 
@@ -33,9 +30,9 @@ def create_app():
     @jwt.token_in_blocklist_loader
     def check_if_token_revoked(jwt_header, jwt_payload):
         jti = jwt_payload["jti"]
-        return jti in blacklisted_tokens
+        return BlackListTokens.query.filter_by(jti=jti).first() is not None
+        
 
-    from .routes import bp
     app.register_blueprint(bp)
 
     return app

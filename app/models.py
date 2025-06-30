@@ -1,4 +1,4 @@
-from . import db
+from .extensions import db
 from datetime import datetime
 from werkzeug.security import generate_password_hash, check_password_hash
 
@@ -39,3 +39,9 @@ class Issue(db.Model):
             'created_at': self.created_at.isoformat()
         }
 
+class BlackListTokens(db.Model):
+    __tablename__ = 'blacklist_tokens'
+
+    id = db.Column(db.Integer, primary_key=True)
+    jti = db.Column(db.String(36), nullable=False, unique=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
