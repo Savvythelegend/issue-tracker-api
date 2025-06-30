@@ -10,7 +10,7 @@ class User(db.Model):
     email = db.Column(db.String(120), unique=True, nullable=False)
     password_hash = db.Column(db.String(128), nullable=False)
     role = db.Column(db.String(20), default='user') # e.g., 'admin', 'user'
-    issues = db.relationship('Issue', backref='user', lazy=True)
+    issues = db.relationship('I ssue', backref='user', lazy=True)
 
     def set_password(self, password):
         self.password_hash = generate_password_hash(password)
