@@ -21,5 +21,5 @@ ENV FLASK_CONFIG=production
 # Make sure /usr/local/bin is in PATH
 ENV PATH="/usr/local/bin:$PATH"
 
-# Use dynamic port from Render
-CMD ["gunicorn", "run:app", "--bind", "0.0.0.0:$PORT"]
+# Run migrations and start server
+CMD ["sh", "-c", "flask db upgrade && gunicorn run:app --bind 0.0.0.0:$PORT"]
