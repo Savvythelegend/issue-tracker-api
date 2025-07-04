@@ -16,15 +16,15 @@ COPY . .
 # Install all dependencies including optional dev dependencies into the system environment
 RUN uv pip install --system .[dev]
 
+# Debug: Check what's installed and where
+RUN which python
+RUN which pip
+RUN pip list | grep gunicorn || echo "gunicorn not found in pip list"
+RUN find / -name gunicorn -type f 2>/dev/null || echo "gunicorn executable not found"
+
 # Set environment variables
 ENV FLASK_APP=run.py
 ENV FLASK_CONFIG=production
 
-# Expose port
-EXPOSE 5000
-
-# Create a startup script
-RUN echo '#!/bin/bash\nflask db upgrade\ngunicorn run:app --bind 0.0.0.0:${PORT:-5000}' > /app/start.sh && chmod +x /app/start.sh
-
-# Use the startup script
-CMD ["/app/start.sh"]
+# Try running gunicorn directly to see the error
+CMD ["python", "-m", "gunicorn", "run:app", "--bind", "0.0.0.0:5000"]
