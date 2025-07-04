@@ -1,17 +1,26 @@
 # Python
 __pycache__/
 *.pyc
+*.pyo
+*.pyd
 
 # Envs & IDEs
 .venv/
 .env
 *.env
 .vscode/
+*.swp
 
 # DB
 *.db
+instance/
+
+# Coverage
+.coverage
+htmlcov/
 
 # Build artifacts
 build/
-*.egg-info
-
+dist/
+*.egg-info/
+*.egg
