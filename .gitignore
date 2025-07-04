@@ -10,3 +10,8 @@ __pycache__/
 
 # DB
 *.db
+
+# Build artifacts
+build/
+*.egg-info/
+
