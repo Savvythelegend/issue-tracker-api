@@ -14,6 +14,6 @@ EXPOSE 5000
 
 ENV FLASK_APP=run.py
 ENV FLASK_RUN_HOST=0.0.0.0
-ENV FLASK_ENV=development
+ENV FLASK_CONFIG=production
 
-CMD ["uv", "pip", "run", "flask", "run"]
+CMD uv pip run flask db upgrade && uv pip run gunicorn run:app --bind 0.0.0.0:5000
