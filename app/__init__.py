@@ -1,19 +1,24 @@
 # app/__init__.py
 
-from flask import Flask
-from dotenv import load_dotenv
-from .extensions import db, jwt, swagger, migrate
-from .routes import bp
-from .models import BlackListTokens
 import os
+
+from dotenv import load_dotenv
+from flask import Flask
+
+from .extensions import db, jwt, migrate, swagger
+from .models import BlackListTokens
+from .routes import bp
 
 load_dotenv()
 
-def create_app():
-    app = Flask(__name__)
 
-    config_name = os.getenv("FLASK_CONFIG", "development").capitalize() + "Config"
-    app.config.from_object(f"app.config.{config_name}")
+def create_app(config_name=None):
+    app = Flask(__name__)
+    if config_name is None:
+        config_name = os.getenv("FLASK_CONFIG", "development").capitalize() + "Config"
+    else:
+        config_name = config_name.capitalize() + "Config"
+    app.config.from_object(f"app.core.config.{config_name}")
 
     db.init_app(app)
     jwt.init_app(app)
