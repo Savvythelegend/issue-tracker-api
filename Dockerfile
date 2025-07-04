@@ -5,7 +5,7 @@ FROM python:3.12-slim
 WORKDIR /app
 
 # Install system dependencies required for psycopg2 and compilation
-RUN apt-get update && apt-get install -y gcc libpq-dev curl
+RUN apt-get update && apt-get install -y gcc libpq-dev curl && rm -rf /var/lib/apt/lists/*
 
 # Install uv (Python dependency manager)
 RUN pip install --no-cache-dir uv
@@ -20,5 +20,11 @@ RUN uv pip install --system .[dev]
 ENV FLASK_APP=run.py
 ENV FLASK_CONFIG=production
 
-# Run DB migrations and start the server with Gunicorn
-CMD ["sh", "-c", "uv pip run flask db upgrade && uv pip run gunicorn run:app --bind 0.0.0.0:5000"]
+# Expose port
+EXPOSE 5000
+
+# Create a startup script
+RUN echo '#!/bin/bash\nflask db upgrade\ngunicorn run:app --bind 0.0.0.0:${PORT:-5000}' > /app/start.sh && chmod +x /app/start.sh
+
+# Use the startup script
+CMD ["/app/start.sh"]
