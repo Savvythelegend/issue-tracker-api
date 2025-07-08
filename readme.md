@@ -169,7 +169,7 @@ pre-commit run --all-files
 
 ---
 
-## 🚀 Deployment
+## Deployment
 
 Use `docker-compose.prod.yml` or a PaaS provider like Render, Railway, or Northflank.
 
