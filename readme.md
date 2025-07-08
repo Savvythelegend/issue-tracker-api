@@ -124,7 +124,7 @@ uv pip install .[dev]
 
 ---
 
-## 🧪 Environment Variables
+## Environment Variables
 
 Create a `.env` file in the project root:
 
