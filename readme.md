@@ -136,7 +136,7 @@ JWT_SECRET_KEY=your-secret-key
 
 ---
 
-## ▶️ Running Locally (without Docker)
+## Running Locally (without Docker)
 
 ```bash
 flask db upgrade
