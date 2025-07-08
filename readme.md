@@ -41,7 +41,7 @@ A secure, production-ready, and Dockerized backend API to manage issue tickets. 
 
 ---
 
-## 🛠 Tech Stack
+## Tech Stack
 
 | Category       | Tools & Libraries                                                  |
 |----------------|---------------------------------------------------------------------|
